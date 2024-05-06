@@ -109,18 +109,20 @@ def scrapeOneCard(soup):
     # The article content and the publisher are not distinguishable via HTMl Tags -> The last <p class="text"> is the contact information
     articleText = soup.find_all('p', class_ = 'text')
 
+    fullText = "" # Declare fullText (if the content of the article is empty fullText is never declared and an error is thrown in the return line)
     numberOfParagraphs = len(articleText)
 
-    for index, paragraph in enumerate(articleText):
-        # The last <p class="text"> is the contact information
-        if (index == numberOfParagraphs - 1):
-            if len(paragraph.text.split('\n')) > 0:
-                publisher = paragraph.text.split('\n')[0].strip()
-        else: # every other <p class="text"> is part of the article
-            if (index == 0):
-                fullText = paragraph.text.strip()
-            else:
-                fullText += " " + paragraph.text.strip()
+    if numberOfParagraphs > 0:
+        for index, paragraph in enumerate(articleText):
+            # The last <p class="text"> is the contact information
+            if (index == numberOfParagraphs - 1):
+                if len(paragraph.text.split('\n')) > 0:
+                    publisher = paragraph.text.split('\n')[0].strip()
+            else: # every other <p class="text"> is part of the article
+                if (index == 0):
+                    fullText = paragraph.text.strip()
+                else:
+                    fullText += " " + paragraph.text.strip()
 
     dateContainer = soup.find('div', class_ = 'meta-top')
     date = dateContainer.find('div', class_ = "volltextDetails").text.strip()
