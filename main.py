@@ -18,9 +18,6 @@ except ValueError:
     print('\033[93mError: Please enter a number\033[0m')
     exit()
 
-print("Please provide the name of the entitiy publishing the articles (e.g. 'SPÖ')")
-publisherName = input("> ")
-
 timeNeeded = float(numberOfPagesToScrape) * (17.37 + 3)
 timeFormat = "seconds"
 
