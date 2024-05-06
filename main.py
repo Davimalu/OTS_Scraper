@@ -156,7 +156,7 @@ def estimateRuntime(URL, numberOfPagesToScrape):
     scrapePage(soup, None, False)
     neededTime = calculateTimeDelta(start_time, time.time())
     
-    return neededTime * numberOfPagesToScrape
+    return (neededTime + 3) * numberOfPagesToScrape
 
 if __name__ == "__main__":
     # Get user input
