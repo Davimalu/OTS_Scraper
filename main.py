@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import pandas
 import requests
 import csv
 import time
@@ -54,7 +55,9 @@ for i in range(numberOfPagesToScrape):
 
     # Get content of provided URL and check if URL is valid
     try:
-        html_text = requests.get(f'https://www.ots.at{nextPage}').text
+        html_text = requests.get(f'https://www.ots.at{nextPage}')
+        html_text.encoding = 'UTF-8'
+        html_text = html_text.text
     except requests.exceptions.RequestException as error:  # This is the correct syntax
         print("\033[93mError establishing a connection. Please check if the provided URL is valid.\033[0m More information:")
         raise SystemExit(error)
@@ -68,7 +71,9 @@ for i in range(numberOfPagesToScrape):
         title = details.find('h3', class_ = 'aussendung-title')
         link = title.find('a')['href']
         
-        subpage = requests.get(f'https://www.ots.at{link}').text
+        subpage = requests.get(f'https://www.ots.at{link}')
+        subpage.encoding = 'UTF-8'
+        subpage = subpage.text
         subSoup = BeautifulSoup(subpage, 'lxml')
 
         articleTitle = subSoup.find('h1', {"itemprop" : "headline"}).text
@@ -100,7 +105,15 @@ for i in range(numberOfPagesToScrape):
         dateContainer = subSoup.find('div', class_ = 'meta-top')
         date = dateContainer.find('div', class_ = "volltextDetails").text
 
-        writer.writerow([articleTitle.strip(), articleCaption, fullText.strip(), date.strip(), publisher.strip()])
+        # Remove newlines and blank spaces
+        articleTitle = articleTitle.strip()
+        if articleCaption:
+            articleCaption = articleCaption.strip()
+        fullText = fullText.strip()
+        date = date.strip()
+        publisher = publisher.strip()
+
+        writer.writerow([articleTitle, articleCaption, fullText, date, publisher])
         
         print(f"Added {articleTitle}")
 
@@ -110,7 +123,7 @@ for i in range(numberOfPagesToScrape):
     # No next page available
     if not nextPage:
         print("\033[93mThere are no more pages available to scrape. The program will now terminate\033[0m")
-        exit()
+        break
     else:
         nextPage = nextPage['href']
 
@@ -122,7 +135,7 @@ for i in range(numberOfPagesToScrape):
     time.sleep(1)
     print(".", end='', flush=True)
 
-    # Track how long the scraping of one page takes to provide accurate Time Remaining Feedback
+    # Track how long the scraping of one page took to provide accurate Time Remaining Feedback
     end_time = time.time()
 
     time_delta = round(end_time - start_time, 2)
@@ -149,3 +162,11 @@ for i in range(numberOfPagesToScrape):
     print(f" | {i+1} / {numberOfPagesToScrape} | {round(timeNeeded, 2)} {timeFormat} remaining", flush=True)
 
 file.close()
+
+# Remove all new lines from csv
+file = pandas.read_csv(fileName)
+
+for col in file:
+    file[col] = file[col].replace("\n", " ", regex = True).replace("\r", " ", regex = True)
+
+file.to_csv(fileName, index = False, quoting=csv.QUOTE_ALL)
