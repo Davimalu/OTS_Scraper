@@ -2,164 +2,216 @@ from bs4 import BeautifulSoup
 import pandas
 import requests
 import csv
-import time
+import time  
 
-# Get user input
-print("Please provide OTS Link to scrape (e.g. '/pressemappe/199/spoe-parlamentsklub')")
-nextPage = input("> ")
+class Article:
+    def __init__(self, title, subtitle, content, dateTime, publisher):
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content
+        self.dateTime = dateTime
+        self.publisher = publisher
 
-print("Please provide the output filename (e.g. 'spoe_aussendungen.csv')")
-fileName = input("> ")
 
-print("Please provide the number of pages to be scraped (e.g. '667')")
-try:
-    numberOfPagesToScrape = int(input("> "))
-except ValueError:
-    print('\033[93mError: Please enter a number\033[0m')
-    exit()
+def removeNewLines():
+    # Remove all new lines from csv
+    file = pandas.read_csv(fileName)
 
-timeNeeded = float(numberOfPagesToScrape) * (17.37 + 3)
-timeFormat = "seconds"
+    for col in file:
+        file[col] = file[col].replace("\n", " ", regex = True).replace("\r", " ", regex = True)
 
-# Convert to appropriate format
-if (timeNeeded > 60):
-    timeNeeded = timeNeeded / 60
-    timeFormat = "minutes"
+    file.to_csv(fileName, index = False, quoting=csv.QUOTE_ALL)
 
-if (timeNeeded > 60):
-    timeNeeded = timeNeeded / 60
-    timeFormat = "hours"
 
-print(f"This operation will take approximately {round(timeNeeded, 2)} {timeFormat}. Continue? (Y/N)")
-continueInput = input("> ")
+def getScrapeURL():
+    # Get URL to scrape
+    print("Please provide OTS Link to scrape (e.g. '/pressemappe/199/spoe-parlamentsklub')")
+    nextPage = input("> ")
+    return nextPage
 
-if continueInput != "Y" and continueInput != "y":
-    exit()
 
-tracked_times = []
+def getCSVFileName():
+    # Get filename of the csv to be saved
+    print("Please provide the output filename (e.g. 'spoe_aussendungen.csv')")
+    fileName = input("> ")
+    return fileName
 
-# Create csv
-file = open(fileName, "w")
-# Always use quotes to separate entries (, between "" don't count as a new csv item)
-writer = csv.writer(file, quoting=csv.QUOTE_ALL)
 
-# Create first row of csv
-writer.writerow(["TITEL", "UNTERTITEL", "INHALT", "DATUM", "HERAUSGEBER"])
+def getNumberOfPagesToScrape():
+    # Loop until correct user input was given
+    numberOfPagesToScrape = 0
+    while (numberOfPagesToScrape < 1):
+        print("Please provide the number of pages to be scraped (e.g. '667')")
+        try:
+            numberOfPagesToScrape = int(input("> "))
+        except ValueError:
+            print('\033[93mError: Please enter a number\033[0m')
+            numberOfPagesToScrape = 0
 
-for i in range(numberOfPagesToScrape):
-    # Track how long the scraping of one page takes to provide accurate Time Remaining Feedback
-    start_time = time.time()
+    return numberOfPagesToScrape
 
+
+def createSoupObjectForURL(URL):
     # Get content of provided URL and check if URL is valid
     try:
-        html_text = requests.get(f'https://www.ots.at{nextPage}')
+        html_text = requests.get(f'https://www.ots.at{URL}')
         html_text.encoding = 'UTF-8'
         html_text = html_text.text
-    except requests.exceptions.RequestException as error:  # This is the correct syntax
-        print("\033[93mError establishing a connection. Please check if the provided URL is valid.\033[0m More information:")
+    except requests.exceptions.RequestException as error:
+        print("\033[93mError establishing a connection. Please check if the provided URL is valid.\033[0m Debug information:")
         raise SystemExit(error)
 
-    soup = BeautifulSoup(html_text, 'lxml')
+    return BeautifulSoup(html_text, 'lxml')
 
+
+def convertSecondsToAppropriateFormat(duration):
+    # Convert seconds to best suited time format
+    timeFormat = "seconds"
+    
+    if (duration > 60):
+        duration = duration / 60
+        timeFormat = "minutes"
+
+    if (duration > 60):
+        duration = duration / 60
+        timeFormat = "hours"
+
+    return [round(duration, 2), timeFormat]
+
+
+def scrapePage(soup, writer, writeToCSV):
     cards = soup.find_all('div', class_ = 'aussendung')
 
     for card in cards:
-        details = card.find('div', class_ = 'aussendung-content')
-        title = details.find('h3', class_ = 'aussendung-title')
+        cardContent = card.find('div', class_ = 'aussendung-content')
+        title = cardContent.find('h3', class_ = 'aussendung-title')
         link = title.find('a')['href']
         
-        subpage = requests.get(f'https://www.ots.at{link}')
-        subpage.encoding = 'UTF-8'
-        subpage = subpage.text
-        subSoup = BeautifulSoup(subpage, 'lxml')
+        subSoup = createSoupObjectForURL(link)
+        article = scrapeOneCard(subSoup)
 
-        articleTitle = subSoup.find('h1', {"itemprop" : "headline"}).text
-        
-        articleCaption = subSoup.find('h2', class_ = 'untertitel')
+        if writeToCSV:
+            # Write to csv
+            writer.writerow([article.title, article.subtitle, article.content, article.dateTime, article.publisher])
+            print(f"Added {article.title}")
 
-        # Sometimes there are articles without captions
-        if articleCaption:
-            articleCaption = articleCaption.text
-            articleCaption = articleCaption.strip()
 
-        articleText = subSoup.find_all('p', class_ = 'text')
-        fullText = ''
-        publisher = ''
+def scrapeOneCard(soup):
+    articleTitle = soup.find('h1', {"itemprop" : "headline"}).text.strip()
+    
+    articleCaption = soup.find('h2', class_ = 'untertitel')
 
-        length = len(articleText)
+    # Sometimes there are articles without captions
+    if articleCaption:
+        articleCaption = articleCaption.text.strip()
 
-        for index, paragraph in enumerate(articleText):
-            if index == length - 1:
-                if len(paragraph.text.split('\n')) > 0:
-                    publisher = paragraph.text.split('\n')[0]
+    # Get content of the article
+    # The article content and the publisher are not distinguishable via HTMl Tags -> The last <p class="text"> is the contact information
+    articleText = soup.find_all('p', class_ = 'text')
+
+    numberOfParagraphs = len(articleText)
+
+    for index, paragraph in enumerate(articleText):
+        # The last <p class="text"> is the contact information
+        if (index == numberOfParagraphs - 1):
+            if len(paragraph.text.split('\n')) > 0:
+                publisher = paragraph.text.split('\n')[0].strip()
+        else: # every other <p class="text"> is part of the article
+            if (index == 0):
+                fullText = paragraph.text.strip()
             else:
                 fullText += " " + paragraph.text.strip()
 
-        dateContainer = subSoup.find('div', class_ = 'meta-top')
-        date = dateContainer.find('div', class_ = "volltextDetails").text
+    dateContainer = soup.find('div', class_ = 'meta-top')
+    date = dateContainer.find('div', class_ = "volltextDetails").text.strip()
 
-        # Remove newlines and blank spaces
-        articleTitle = articleTitle.strip()
-        if articleCaption:
-            articleCaption = articleCaption.strip()
-        fullText = fullText.strip()
-        date = date.strip()
-        publisher = publisher.strip()
+    return Article(articleTitle, articleCaption, fullText, date, publisher)
 
-        writer.writerow([articleTitle, articleCaption, fullText, date, publisher])
-        
-        print(f"Added {articleTitle}")
 
-    # Get next page
-    nextPage = soup.find('a', class_ = 'next-results')
+def buffer(numberOfSeconds):
+    print(f"Buffering for {numberOfSeconds} seconds", end='', flush=True)
+    
+    for i in range(numberOfSeconds):
+        time.sleep(1)
+        print(".", end='', flush=True)
 
-    # No next page available
-    if not nextPage:
-        print("\033[93mThere are no more pages available to scrape. The program will now terminate\033[0m")
-        break
-    else:
-        nextPage = nextPage['href']
 
-    print("Waiting for 3 seconds", end='', flush=True)
-    time.sleep(1)
-    print(".", end='', flush=True)
-    time.sleep(1)
-    print(".", end='', flush=True)
-    time.sleep(1)
-    print(".", end='', flush=True)
+def calculateTimeDelta(start_time, end_time):
+    return round(end_time - start_time, 2)
 
-    # Track how long the scraping of one page took to provide accurate Time Remaining Feedback
-    end_time = time.time()
 
-    time_delta = round(end_time - start_time, 2)
-    tracked_times.append(time_delta)
-
+def calculateRemainingTime(tracked_times, numberOfPagesToScrape):
     totalTime = 0
     for tracked_time in tracked_times:
         totalTime += tracked_time
 
     averageTime = totalTime / len(tracked_times)
-    timeNeeded = averageTime * (numberOfPagesToScrape - (i + 1))
+    return averageTime * (numberOfPagesToScrape - (i + 1))
 
-    # Convert to appropriate format
-    timeFormat = "seconds"
 
-    if (timeNeeded > 60):
-        timeNeeded = timeNeeded / 60
-        timeFormat = "minutes"
+def estimateRuntime(URL, numberOfPagesToScrape):
+    # Scrape one page to determine the expected runtime
+    soup = createSoupObjectForURL(URL)
+    start_time = time.time()
+    scrapePage(soup, None, False)
+    neededTime = calculateTimeDelta(start_time, time.time())
+    
+    return neededTime * numberOfPagesToScrape
 
-    if (timeNeeded > 60):
-        timeNeeded = timeNeeded / 60
-        timeFormat = "hours"
+if __name__ == "__main__":
+    # Get user input
+    nextPage = getScrapeURL()
+    fileName = getCSVFileName()
+    numberOfPagesToScrape = getNumberOfPagesToScrape()
 
-    print(f" | {i+1} / {numberOfPagesToScrape} | {round(timeNeeded, 2)} {timeFormat} remaining", flush=True)
+    # Estimate runtime
+    print("Estimating runtime... Please wait! (Depending on your hardware and internet connection this might take up to 60 seconds)")
+    timeNeeded = estimateRuntime(nextPage, numberOfPagesToScrape)
+    timeEstimation = convertSecondsToAppropriateFormat(timeNeeded)
 
-file.close()
+    print(f"This operation will take approximately {timeEstimation[0]} {timeEstimation[1]}. Continue? (Y/N)")
+    continueInput = input("> ")
 
-# Remove all new lines from csv
-file = pandas.read_csv(fileName)
+    if continueInput != "Y" and continueInput != "y":
+        exit()
 
-for col in file:
-    file[col] = file[col].replace("\n", " ", regex = True).replace("\r", " ", regex = True)
+    tracked_times = []
 
-file.to_csv(fileName, index = False, quoting=csv.QUOTE_ALL)
+    # Create csv
+    file = open(fileName, "w")
+    # Always use quotes to separate entries (, between "" don't count as a new csv item)
+    writer = csv.writer(file, quoting=csv.QUOTE_ALL)
+
+    # Create first row of csv
+    writer.writerow(["TITEL", "UNTERTITEL", "INHALT", "DATUM", "HERAUSGEBER"])
+
+    for i in range(numberOfPagesToScrape):
+        # Track how long the scraping of one page takes to provide accurate Time Remaining Feedback
+        start_time = time.time()
+
+        soup = createSoupObjectForURL(nextPage)
+        scrapePage(soup, writer, True)
+
+        # Get next page
+        nextPage = soup.find('a', class_ = 'next-results')
+
+        # No next page available
+        if not nextPage:
+            print("\033[93mThere are no more pages available to scrape. The program will now terminate\033[0m")
+            break
+        else:
+            nextPage = nextPage['href']
+
+        # Wait 3 seconds after scraping one page to prevent the server from being overloaded or the IP from being blocked
+        buffer(3)
+
+        # Track how long the scraping of one page took to provide accurate Time Remaining Feedback
+        tracked_times.append(calculateTimeDelta(start_time, time.time()))
+        timeNeeded = calculateRemainingTime(tracked_times, numberOfPagesToScrape)
+        timeEstimation = convertSecondsToAppropriateFormat(timeNeeded)
+
+        print(f" | {i+1} / {numberOfPagesToScrape} | {timeEstimation[0]} {timeEstimation[1]} remaining", flush=True)
+
+    file.close()
+    
+    removeNewLines()
