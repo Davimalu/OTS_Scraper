@@ -11,7 +11,11 @@ print("Please provide the output filename (e.g. 'spoe_aussendungen.csv')")
 fileName = input("> ")
 
 print("Please provide the number of pages to be scraped (e.g. '667')")
-numberOfPagesToScrape = int(input("> "))
+try:
+    numberOfPagesToScrape = int(input("> "))
+except ValueError:
+    print('\033[93mError: Please enter a number\033[0m')
+    exit()
 
 print("Please provide the name of the entitiy publishing the articles (e.g. 'SPÖ')")
 publisherName = input("> ")
