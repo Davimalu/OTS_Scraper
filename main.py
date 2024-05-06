@@ -93,12 +93,8 @@ for i in range(numberOfPagesToScrape):
 
         for index, paragraph in enumerate(articleText):
             if index == length - 1:
-                if len(paragraph.text.split()) > 0:
-                    publisher = paragraph.text.split()[0]
-
-                    if publisherName not in publisher and len(paragraph.text.split()) > 1:
-                        publisher += " "
-                        publisher += paragraph.text.split()[1]
+                if len(paragraph.text.split('\n')) > 0:
+                    publisher = paragraph.text.split('\n')[0]
             else:
                 fullText += " " + paragraph.text.strip()
 
