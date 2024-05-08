@@ -233,3 +233,4 @@ if __name__ == "__main__":
     file.close()
     
     removeNewLines()
+    #time.sleep(5) WINDOWS ONLY
