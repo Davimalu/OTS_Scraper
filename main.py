@@ -42,7 +42,7 @@ def getNumberOfPagesToScrape():
     # Loop until correct user input was given
     numberOfPagesToScrape = 0
     while (numberOfPagesToScrape < 1):
-        print("Please provide the number of pages to be scraped (e.g. '667')")
+        print("Please provide the number of pages to be scraped (e.g. '25')")
         try:
             numberOfPagesToScrape = int(input("> "))
         except ValueError:
@@ -161,6 +161,15 @@ def estimateRuntime(URL, numberOfPagesToScrape):
     
     return (neededTime + 3) * numberOfPagesToScrape
 
+
+def printRuntimeAndAskConfirmation(timeEstimation):
+    print(f"This operation will take approximately {timeEstimation[0]} {timeEstimation[1]}. Continue? (Y/N)")
+    continueInput = input("> ")
+
+    if continueInput != "Y" and continueInput != "y":
+        exit()
+
+
 if __name__ == "__main__":
     # Get user input
     nextPage = getScrapeURL()
@@ -171,12 +180,7 @@ if __name__ == "__main__":
     print("Estimating runtime... Please wait! (Depending on your hardware and internet connection this might take up to 60 seconds)")
     timeNeeded = estimateRuntime(nextPage, numberOfPagesToScrape)
     timeEstimation = convertSecondsToAppropriateFormat(timeNeeded)
-
-    print(f"This operation will take approximately {timeEstimation[0]} {timeEstimation[1]}. Continue? (Y/N)")
-    continueInput = input("> ")
-
-    if continueInput != "Y" and continueInput != "y":
-        exit()
+    printRuntimeAndAskConfirmation(timeEstimation)
 
     tracked_times = []
 
@@ -184,7 +188,6 @@ if __name__ == "__main__":
     file = open(fileName, "w")
     # Always use quotes to separate entries (, between "" don't count as a new csv item)
     writer = csv.writer(file, quoting=csv.QUOTE_ALL)
-
     # Create first row of csv
     writer.writerow(["TITEL", "UNTERTITEL", "INHALT", "DATUM", "HERAUSGEBER"])
 
@@ -204,6 +207,12 @@ if __name__ == "__main__":
             break
         else:
             nextPage = nextPage['href']
+
+        # Spiecal Case: Last Page to be scraped
+        if (i == numberOfPagesToScrape - 1):
+            print(f"\033[92mScraping finished!\033[0m")
+            print(f"{i+1} / {numberOfPagesToScrape} pages scraped succesfully | Articles were saved into {fileName}")
+            break
 
         # Wait 3 seconds after scraping one page to prevent the server from being overloaded or the IP from being blocked
         buffer(3)
