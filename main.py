@@ -28,7 +28,7 @@ def getScrapeURL():
     # Get URL to scrape
     print("Please provide OTS Link to scrape (e.g. '/pressemappe/199/spoe-parlamentsklub')")
     nextPage = input("> ")
-    
+
     if not urllib.parse.urlsplit(nextPage).query:
         return urllib.parse.urlparse(nextPage).path
     else:
@@ -64,6 +64,7 @@ def createSoupObjectForURL(URL):
         html_text = html_text.text
     except requests.exceptions.RequestException as error:
         print("\033[93mError establishing a connection. Please make sure that the provided URL is valid and that you're connected to the internet.\033[0m Debug information:")
+        #time.sleep(5) WINDOWS ONLY
         raise SystemExit(error)
 
     return BeautifulSoup(html_text, 'lxml')
@@ -115,6 +116,7 @@ def scrapeOneCard(soup):
     articleText = soup.find_all('p', class_ = 'text')
 
     fullText = "" # Declare fullText (if the content of the article is empty fullText is never declared and an error is thrown in the return line)
+    publisher = "" # Declare publisher (if the content of the article is empty publisher is never declared and an error is thrown in the return line)
     numberOfParagraphs = len(articleText)
 
     if numberOfParagraphs > 0:
