@@ -28,7 +28,11 @@ def getScrapeURL():
     # Get URL to scrape
     print("Please provide OTS Link to scrape (e.g. '/pressemappe/199/spoe-parlamentsklub')")
     nextPage = input("> ")
-    return urllib.parse.urlparse(nextPage).path # https://stackoverflow.com/questions/7894384/python-get-url-path-sections
+    
+    if not urllib.parse.urlsplit(nextPage).query:
+        return urllib.parse.urlparse(nextPage).path
+    else:
+        return urllib.parse.urlsplit(nextPage).path + "?" + urllib.parse.urlsplit(nextPage).query
 
 
 def getCSVFileName():
