@@ -1,4 +1,4 @@
-# OTS Scraper
+# OTS/APA Scraper
 
 OTS Scraper is a simple command line Python script that allows you to scrape articles from the APA's "Originaltext-Service" (OTS). The script creates a csv file that will contain Title, Subtitle, Content, Publishing Date and Author of each article.
 
