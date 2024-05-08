@@ -58,7 +58,7 @@ def createSoupObjectForURL(URL):
         html_text.encoding = 'UTF-8'
         html_text = html_text.text
     except requests.exceptions.RequestException as error:
-        print("\033[93mError establishing a connection. Please check if the provided URL is valid.\033[0m Debug information:")
+        print("\033[93mError establishing a connection. Please check if the provided URL is valid and that you're connected to the internet.\033[0m Debug information:")
         raise SystemExit(error)
 
     return BeautifulSoup(html_text, 'lxml')
