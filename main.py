@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import pandas
+import urllib.parse
 import requests
 import csv
 import time  
@@ -27,7 +28,7 @@ def getScrapeURL():
     # Get URL to scrape
     print("Please provide OTS Link to scrape (e.g. '/pressemappe/199/spoe-parlamentsklub')")
     nextPage = input("> ")
-    return nextPage
+    return urllib.parse.urlparse(nextPage).path # https://stackoverflow.com/questions/7894384/python-get-url-path-sections
 
 
 def getCSVFileName():
@@ -58,7 +59,7 @@ def createSoupObjectForURL(URL):
         html_text.encoding = 'UTF-8'
         html_text = html_text.text
     except requests.exceptions.RequestException as error:
-        print("\033[93mError establishing a connection. Please check if the provided URL is valid and that you're connected to the internet.\033[0m Debug information:")
+        print("\033[93mError establishing a connection. Please make sure that the provided URL is valid and that you're connected to the internet.\033[0m Debug information:")
         raise SystemExit(error)
 
     return BeautifulSoup(html_text, 'lxml')
