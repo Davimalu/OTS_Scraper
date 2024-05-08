@@ -191,7 +191,7 @@ if __name__ == "__main__":
     tracked_times = []
 
     # Create csv
-    file = open(fileName, "w")
+    file = open(fileName, "w", encoding='utf-8')
     # Always use quotes to separate entries (, between "" don't count as a new csv item)
     writer = csv.writer(file, quoting=csv.QUOTE_ALL)
     # Create first row of csv
