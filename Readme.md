@@ -2,41 +2,43 @@
 
 OTS Scraper is a simple command line Python script that allows you to scrape articles from the APA's "Originaltext-Service" (OTS). The script creates a csv file that will contain Title, Subtitle, Content, Publishing Date and Author of each article.
 
+![Video demonstrating the usage of the applpication](demo.gif)
+
 ## Installation
 
 ### Installation using the provided executable (Recommended)
 
 #### Windows
 
-Download the .exe file from the [releases section]() and execute it.
+Download the .exe file from the [releases section](https://github.com/Davimalu/OTS_Scraper/releases/tag/1.0.1) and execute it.
 
 #### Linux
 
-1. Download the linux version of OTS Scraper from the [releases section]().
+1. Download the linux version of OTS Scraper from the [releases section](https://github.com/Davimalu/OTS_Scraper/releases/tag/1.0.1).
 2. Make the downloaded file executable
 
 ```
-sudo chmod +x OTS\ Scraper
+sudo chmod +x OTS_Scraper.bin
 ```
 
 3. Run the file
 
 ```
-./OTS\ Scraper
+./OTS_Scraper.bin
 ```
 
 #### MacOS
 
-Please refer to the [Installation using the command line](<#installation-using-the-command-line-(advanced-users)>).
+Please refer to the [Installation using the command line](#installation-using-the-command-line).
 
-### Installation using the command line (Advanced Users)
+### Installation using the command line
 
 Make sure you have a working installation of Python 3 on your operating system. It is recommended to create a new [Virtual Environment](https://docs.python.org/3/library/venv.html) before running the below commands.
 
 1. Download repository
 
 ```
-git clone ...
+git clone https://github.com/Davimalu/OTS_Scraper.git
 ```
 
 2. Install Dependencies
